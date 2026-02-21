@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useEffect, useState, useCallback } from 'react'; // 1. Added useCallback
+import { useEffect, useState, useCallback } from 'react';
 import { Contxt } from './Components/Context';
 import Card from './Components/Card';
 import Chart from './Components/Chart';
@@ -9,8 +9,13 @@ function App() {
   const [loading, setloading] = useState(true);
   const deta = Contxt();
 
-  // 2. Wrap get in useCallback so it's defined in the main scope
+  // 1. Move the logic into a stable function
+  // We remove [deta.city] from the dependency array so the function 
+  // doesn't change while the user is typing.
   const get = useCallback(async () => {
+    // If there's no city, don't fetch
+    if (!deta.city) return;
+
     setloading(true);
     try {
       const weatherRes = await axios.get(
@@ -33,20 +38,23 @@ function App() {
       setloading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deta.city]); // Only recreate function if city changes
+  }, []); // Empty dependency array keeps 'get' stable
 
-  // 3. Effect calls the memoized get()
+  // 2. Only run ONCE on mount
   useEffect(() => {
     get();
-  }, [get]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
-  if (loading) return <h1>loading</h1>;
+  // 3. Instead of blocking the whole app with a loading screen,
+  // only block if we have NO data at all yet.
+  if (loading && !deta.info.name) return <h1>loading...</h1>;
 
   return (
     <div>
-      {/* 4. Now 'get' is defined and accessible here */}
       <Card get={get} />
-      <Chart />
+      {/* Show a mini loader or just the chart if data exists */}
+      {loading ? <p>Updating...</p> : <Chart />}
     </div>
   );
 }
