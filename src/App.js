@@ -1,18 +1,16 @@
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react'; // 1. Added useCallback
 import { Contxt } from './Components/Context';
 import Card from './Components/Card';
 import Chart from './Components/Chart';
-import './App.css'
+import './App.css';
 
 function App() {
-const [loading, setloading] = useState(true)  
+  const [loading, setloading] = useState(true);
+  const deta = Contxt();
 
-  let deta=Contxt()
-  console.log(deta.data)
-  
- useEffect(() => {
-  const get = async () => {
+  // 2. Wrap get in useCallback so it's defined in the main scope
+  const get = useCallback(async () => {
     setloading(true);
     try {
       const weatherRes = await axios.get(
@@ -34,21 +32,21 @@ const [loading, setloading] = useState(true)
     } finally {
       setloading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deta.city]); // Only recreate function if city changes
 
-  get();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); // We leave this empty because we only want it to run ONCE on load
+  // 3. Effect calls the memoized get()
+  useEffect(() => {
+    get();
+  }, [get]);
 
-
-
-  if(loading) return <h1>loading</h1>
-
+  if (loading) return <h1>loading</h1>;
 
   return (
-    <div  >
-      <Card get={get}/>
-      <Chart/>
+    <div>
+      {/* 4. Now 'get' is defined and accessible here */}
+      <Card get={get} />
+      <Chart />
     </div>
   );
 }
